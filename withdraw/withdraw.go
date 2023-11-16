@@ -203,6 +203,10 @@ func CompleteWithdrawal(ctx context.Context, l1 *ethclient.Client, l2c *rpc.Clie
 func waitForConfirmation(ctx context.Context, client *ethclient.Client, tx common.Hash) error {
 	for {
 		receipt, err := client.TransactionReceipt(ctx, tx)
+		if err != nil && err != ethereum.NotFound {
+			return err
+		}
+
 		if err == ethereum.NotFound {
 			fmt.Printf("waiting for tx confirmation\n")
 			select {
@@ -210,14 +214,13 @@ func waitForConfirmation(ctx context.Context, client *ethclient.Client, tx commo
 				return ctx.Err()
 			case <-time.After(5 * time.Second):
 			}
-		} else if err != nil {
-			return err
 		} else if receipt.Status != types.ReceiptStatusSuccessful {
 			return errors.New("unsuccessful withdrawal receipt status")
 		} else {
 			break
 		}
 	}
+
 	fmt.Printf("%s confirmed\n", tx.String())
 	return nil
 }
